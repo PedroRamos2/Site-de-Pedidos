@@ -6,15 +6,20 @@
   <title>Pedidos</title>
   <link rel="shortcut icon" href="imagens/favicon.ico" type="image/x-icon">
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Novo Pedido</h1>
+    <h1>Demandas de Pedidos</h1>
     <input type="text" id="pedido" placeholder="Número do pedido" required />
     <input type="text" id="descricao" placeholder="Descrição do produto" required />
+    <p id="resDa">Data:</p>
     <input type="datetime-local" id="expiraEm" required />
-    <button onclick="adicionarPedido()">Adicionar Pedido</button>
+    <button id="adicionar" onclick="adicionarPedido()">Adicionar Pedido</button>
+    <button id="cancelar" onclick="cancelar()">Cancelar</button>
     <p id="mensagem"></p>
 
     <div class="tabs">
@@ -24,13 +29,20 @@
 
     <div id="abaPendentes">
       <h2>Pedidos Pendentes</h2>
+      <input type="text" id="buscaPendentes" 
+             placeholder="Buscar pedidos pendentes..." 
+             onkeyup="handleBuscaKeyPress(event, 'Pendentes')" />
       <ul id="listaPendentes"></ul>
     </div>
 
     <div id="abaConcluidos" style="display: none;">
       <h2>Pedidos Concluídos</h2>
+      <input type="text" id="buscaConcluidos" 
+             placeholder="Buscar pedidos concluídos..." 
+             onkeyup="handleBuscaKeyPress(event, 'Concluidos')" />
       <ul id="listaConcluidos"></ul>
     </div>
+    <footer>&copy; Pedro Ramos</footer>
   </div>
   <script src="script.js"></script>
 </body>

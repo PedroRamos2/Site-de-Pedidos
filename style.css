@@ -1,8 +1,12 @@
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  font-family: "Nunito", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-style: normal;
+  background:rgba(0, 0, 0, 0.57);
   padding: 20px;
 }
+
 .container {
   background: white;
   padding: 20px;
@@ -11,6 +15,17 @@ body {
   margin: auto;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
+
+h1{
+  text-align: center;
+}
+
+#resDa {
+  font-size: 12px;
+  font-weight: bold;
+  margin: 4px 0px 0 5px;
+}
+
 input {
   margin: 5px 0;
   padding: 10px;
@@ -19,9 +34,19 @@ input {
 }
 button {
   margin-top: 10px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+#adicionar, #cancelar{
+  background-color: #4caf50;
+  color: white;
+  border: 1px solid #ccc;
+  margin-top: 10px;
   padding: 10px 20px;
   cursor: pointer;
 }
+
 .tabs {
   display: flex;
   margin-top: 20px;
@@ -51,4 +76,56 @@ li {
   padding: 10px;
   margin-bottom: 10px;
   border-radius: 5px;
+}
+
+#concluir {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+
+#editar {
+  background-color: cornflowerblue;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+
+.btn-excluir{
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  margin-left: 5px;
+}
+.btn-excluir:hover {
+  background-color: #cc0000;
+}
+#buscaPendentes,
+#buscaConcluidos {
+  margin-bottom: 15px;
+  padding: 8px;
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+#buscaPendentes:focus,
+#buscaConcluidos:focus,
+input[type="text"]:focus,
+input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+footer {
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  margin-top: 40px;
 }
