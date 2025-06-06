@@ -3,7 +3,7 @@ body {
   font-optical-sizing: auto;
   font-weight: 700;
   font-style: normal;
-  background:rgba(0, 0, 0, 0.57);
+  background:rgb(105, 105, 173);
   padding: 20px;
 }
 
@@ -16,8 +16,19 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 10px 0 40px 0;
+}
+
+#imgSi {
+  
+}
+
 h1{
-  text-align: center;
+  margin: auto;
 }
 
 #resDa {

@@ -12,6 +12,7 @@ function carregarPedidos() {
     pedidos = JSON.parse(dados);
     pedidos.forEach(pedido => {
       pedido.expira = new Date(pedido.expira);
+      pedido.dataCriacao = new Date(pedido.dataCriacao);
     });
   }
 }
@@ -52,13 +53,18 @@ function adicionarPedido() {
   }
 
   const id = Date.now();
-  pedidos.push({ id, numero, descricao, expira, status: "pendente", notificado: false });
+  const dataCriacao = new Date();
+  pedidos.push({ id, numero, descricao, expira, status: "pendente", notificado: false, dataCriacao });
   atualizarListas();
   document.getElementById("mensagem").textContent = "Pedido adicionado!";
   document.getElementById("pedido").value = "";
   document.getElementById("descricao").value = "";
   document.getElementById("expiraEm").value = "";
 }
+
+setTimeout(() => {
+    document.getElementById("mensagem").textContent = "";
+  }, 5000);
 
 function cancelar() {
     let can = document.getElementById("cancelar")
@@ -89,7 +95,8 @@ function atualizarListas() {
         <div id="view-${pedido.id}">
           <strong>Número:</strong> ${pedido.numero}<br>
           <strong>Descrição:</strong> ${pedido.descricao}<br>
-          <strong>Expira em:</strong> ${pedido.expira.toLocaleString()}<br>
+          <strong>Criado em:</strong> ${pedido.dataCriacao.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
+          <strong>Expira em:</strong> ${pedido.expira.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
           <button id="editar" onclick="abrirEdicao(${pedido.id})">Editar</button>
           <button id="concluir" onclick="marcarComoConcluido(${pedido.id})">Concluir</button>
           <button onclick="excluirPedido(${pedido.id})" class="btn-excluir">Excluir</button>
@@ -109,7 +116,8 @@ function atualizarListas() {
       li.innerHTML = `
         <strong>${pedido.numero}</strong><br>
         ${pedido.descricao}<br>
-        Expirado em: ${pedido.expira.toLocaleString()}<br>
+        Criado em: ${pedido.dataCriacao.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
+        Expirado em: ${pedido.expira.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
         <button onclick="excluirPedido(${pedido.id})" class="btn-excluir">Excluir</button>
       `;
       concluidos.appendChild(li);
@@ -274,7 +282,8 @@ function buscarPedidos(status, buscarExato = false) {
         <div id="view-${pedido.id}">
           <strong>Número:</strong> ${pedido.numero}<br>
           <strong>Descrição:</strong> ${pedido.descricao}<br>
-          <strong>Expira em:</strong> ${pedido.expira.toLocaleString()}<br>
+          <strong>Criado em:</strong> ${pedido.dataCriacao.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
+          <strong>Expira em:</strong> ${pedido.expira.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
           <button id="editar" onclick="abrirEdicao(${pedido.id})">Editar</button>
           <button id="concluir" onclick="marcarComoConcluido(${pedido.id})">Concluir</button>
           <button onclick="excluirPedido(${pedido.id})" class="btn-excluir">Excluir</button>
@@ -293,7 +302,8 @@ function buscarPedidos(status, buscarExato = false) {
       li.innerHTML = `
         <strong>${pedido.numero}</strong><br>
         ${pedido.descricao}<br>
-        Expirado em: ${pedido.expira.toLocaleString()}<br>
+        Criado em: ${pedido.dataCriacao.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
+        Expirado em: ${pedido.expira.toLocaleString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<br>
         <button onclick="excluirPedido(${pedido.id})" class="btn-excluir">Excluir</button>
       `;
     }
