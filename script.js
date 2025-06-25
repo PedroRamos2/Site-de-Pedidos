@@ -1,27 +1,45 @@
+// Supabase config
+const SUPABASE_URL = 'https://xopwqunmuuazzelvuvwt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Checar autenticação
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (!session) {
+    window.location.href = 'index.html';
+  }
+});
+
 (function(){
       emailjs.init({
         publicKey: "yYjrTa1UFxHMyz0K6",
       });
 })();
 
+// Garantir que pedidos seja preenchido apenas via Supabase
 let pedidos = [];
+let emailsUsuarios = [];
 
-function carregarPedidos() {
-  const dados = localStorage.getItem("pedidos");
-  if (dados) {
-    pedidos = JSON.parse(dados);
-    pedidos.forEach(pedido => {
-      pedido.expira = new Date(pedido.expira);
-      pedido.dataCriacao = new Date(pedido.dataCriacao);
-    });
+async function carregarPedidos() {
+  const { data, error } = await supabase.from('pedidos').select('*').order('dataCriacao', { ascending: true });
+  if (!error) {
+    pedidos = data.map(p => ({
+      ...p,
+      expira: new Date(p.expira),
+      dataCriacao: new Date(p.dataCriacao)
+    }));
+    atualizarListas();
+  } else {
+    console.error('Erro ao carregar pedidos do Supabase:', error);
   }
 }
 
 function salvarPedidos() {
-  localStorage.setItem("pedidos", JSON.stringify(pedidos));
+  // Remover funções carregarPedidos e salvarPedidos relacionadas ao localStorage
 }
 
-function adicionarPedido() {
+// Adicionar pedido
+async function adicionarPedido() {
   const numero = document.getElementById("pedido").value.trim();
   const descricao = document.getElementById("descricao").value.trim();
   const expiraInput = document.getElementById("expiraEm").value;
@@ -32,7 +50,7 @@ function adicionarPedido() {
   }
 
   // Verificar se já existe um pedido com o mesmo número
-  const pedidoExistente = pedidos.find(p => p.numero === numero);
+  const { data: pedidoExistente } = await supabase.from('pedidos').select('id').eq('numero', numero).maybeSingle();
   if (pedidoExistente) {
     document.getElementById("mensagem").textContent = "Já existe um pedido com este número!";
     return;
@@ -41,7 +59,6 @@ function adicionarPedido() {
   const expira = new Date(expiraInput);
   const agora = new Date();
 
-  // Verificar se a data é passada
   if (expira <= agora) {
     document.getElementById("mensagem").textContent = "A data de expiração não pode ser no passado!";
     return;
@@ -52,10 +69,15 @@ function adicionarPedido() {
     return;
   }
 
-  const id = Date.now();
   const dataCriacao = new Date();
-  pedidos.push({ id, numero, descricao, expira, status: "pendente", notificado: false, dataCriacao });
-  atualizarListas();
+  await supabase.from('pedidos').insert({
+    numero,
+    descricao,
+    expira: expira.toISOString(),
+    status: "pendente",
+    notificado: false,
+    dataCriacao: dataCriacao.toISOString()
+  });
   document.getElementById("mensagem").textContent = "Pedido adicionado!";
   document.getElementById("pedido").value = "";
   document.getElementById("descricao").value = "";
@@ -74,10 +96,10 @@ function cancelar() {
   document.getElementById("expiraEm").value = "";
 }
 
-function excluirPedido(id) {
+// Excluir pedido
+async function excluirPedido(id) {
   if (confirm("Tem certeza que deseja excluir este pedido?")) {
-    pedidos = pedidos.filter(p => p.id !== id);
-    atualizarListas();
+    await supabase.from('pedidos').delete().eq('id', id);
   }
 }
 
@@ -137,7 +159,8 @@ function cancelarEdicao(id) {
   document.getElementById(`view-${id}`).style.display = "block";
 }
 
-function salvarEdicao(id) {
+// Salvar edição
+async function salvarEdicao(id) {
   const pedido = pedidos.find(p => p.id === id);
   if (!pedido) return;
 
@@ -153,71 +176,67 @@ function salvarEdicao(id) {
   const novaExpiracao = new Date(novaData);
   const agora = new Date();
 
-  // Verificar se a nova data é passada
   if (novaExpiracao <= agora) {
     alert("A data de expiração não pode ser no passado!");
     return;
   }
 
   // Verificar se o novo número já existe em outro pedido
-  const numeroExistente = pedidos.find(p => p.id !== id && p.numero === novoNumero);
+  const { data: numeroExistente } = await supabase.from('pedidos').select('id').eq('numero', novoNumero).neq('id', id).maybeSingle();
   if (numeroExistente) {
     alert("Já existe um pedido com este número!");
     return;
   }
 
-  pedido.numero = novoNumero;
-  pedido.descricao = novaDesc;
-  pedido.expira = novaExpiracao;
-  pedido.notificado = false;
-
-  atualizarListas();
+  await supabase.from('pedidos').update({
+    numero: novoNumero,
+    descricao: novaDesc,
+    expira: novaExpiracao.toISOString(),
+    notificado: false
+  }).eq('id', id);
   cancelarEdicao(id);
 }
 
-function marcarComoConcluido(id) {
-  const pedido = pedidos.find(p => p.id === id);
-  if (pedido) pedido.status = "concluido";
-  atualizarListas();
+// Marcar como concluído
+async function marcarComoConcluido(id) {
+  await supabase.from('pedidos').update({ status: 'concluido' }).eq('id', id);
 }
 
-function verificarExpiracao(pedido) {
-  if (pedido.status !== "pendente" || pedido.notificado) return;
-
-  const agora = new Date();
-  const horasRestantes = (pedido.expira - agora) / 3600000; // Convertendo para horas
-
-  // Verifica se está dentro do período de notificação (6 horas ou menos) e ainda não expirou
-  if (horasRestantes <= 6 && horasRestantes > 0) {
-    // Tenta enviar o email
-    emailjs.send("service_6o2djth", "template_bmvffpx", {
-      pedido: pedido.numero,
-      horas: Math.floor(horasRestantes),
-      descricao: pedido.descricao,
-    }).then(() => {
-      // Se o email foi enviado com sucesso, marca como notificado
-      pedido.notificado = true;
-      salvarPedidos();
-      console.log(`Notificação enviada para o pedido ${pedido.numero}`);
-    }).catch(error => {
-      console.error("Erro ao enviar notificação:", error);
-    });
+// Buscar todos os emails cadastrados no Supabase Auth
+async function buscarEmailsUsuarios() {
+  const { data, error } = await supabase.rpc('get_all_users');
+  if (!error && data) {
+    emailsUsuarios = data.map(u => u.email);
+    console.log('Emails encontrados:', emailsUsuarios);
+  } else {
+    console.error('Erro ao buscar emails dos usuários:', error);
   }
-  
-  // Se o pedido já expirou, marca como concluído automaticamente
+}
+
+// Buscar todos os telefones cadastrados no Supabase Auth
+async function buscarTelefonesUsuarios() {
+  const { data, error } = await supabase.rpc('get_all_phones');
+  if (!error && data) {
+    return data.map(u => u.phone);
+  }
+  return [];
+}
+
+// Atualizar função de notificação para garantir busca dos emails
+async function verificarExpiracao(pedido) {
+  if (pedido.status !== "pendente" || pedido.notificado) return;
+  const agora = new Date();
+  const horasRestantes = (pedido.expira - agora) / 3600000;
+  if (horasRestantes <= 6 && horasRestantes > 0) {
+    const telefones = await buscarTelefonesUsuarios();
+    await notificarPorWhatsappWebhook(pedido, telefones);
+    await supabase.from('pedidos').update({ notificado: true }).eq('id', pedido.id);
+    console.log(`Notificação WhatsApp enviada para o pedido ${pedido.numero}`);
+  }
   if (horasRestantes <= 0 && !pedido.notificado) {
-    pedido.status = "concluido";
-    pedido.notificado = true;
-    salvarPedidos();
+    await supabase.from('pedidos').update({ status: 'concluido', notificado: true }).eq('id', pedido.id);
     console.log(`Pedido ${pedido.numero} marcado como concluído automaticamente por ter expirado`);
   }
-}
-
-// Função para verificar todos os pedidos periodicamente
-function verificarTodosPedidos() {
-  pedidos.forEach(pedido => {
-    verificarExpiracao(pedido);
-  });
 }
 
 function mostrarAba(qual) {
@@ -339,7 +358,26 @@ atualizarListas();
 configurarDataMinima();
 
 // Verificar pedidos a cada 5 minutos
-setInterval(verificarTodosPedidos, 300000);
+setInterval(verificarExpiracao, 300000);
 
 // Atualizar a data mínima a cada minuto
 setInterval(configurarDataMinima, 60000);
+
+// Supabase Realtime: escutar mudanças na tabela pedidos
+supabase.channel('pedidos-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, carregarPedidos)
+  .subscribe();
+
+async function notificarPorWhatsappWebhook(pedido, telefones) {
+  await fetch('http://localhost:5678/webhook/numero', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telefones,
+      numero: pedido.numero,
+      descricao: pedido.descricao,
+      horas: Math.floor((pedido.expira - new Date()) / 3600000)
+    })
+  });
+}
+
