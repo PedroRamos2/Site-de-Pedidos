@@ -3,18 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Mabila3</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Login por Celular e Senha</title>
+  <link rel="stylesheet" href="style2.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-  <div class="login-container">
-    <h2>Login/Cadastro por Celular</h2>
-    <input type="tel" id="phone" placeholder="Digite seu número com DDI, ex: +5511999999999" required>
-    <button onclick="enviarCodigo()">Enviar código</button>
-    <br><br>
-    <input type="text" id="codigo" placeholder="Código recebido por SMS">
-    <button onclick="verificarCodigo()">Entrar</button>
+  <div class="container">
+    <h2>Login e Cadastro</h2>
+    <div class="entrar">
+      <input type="tel" id="phone" placeholder="Ex: +55 (11) 99305-2499" required>
+    </div>
+    <div class="senha">
+      <input type="password" id="senha" placeholder="Senha" required>
+    </div>
+    <div class="butao">
+      <button onclick="login()">Entrar</button>
+      <button onclick="signup()">Cadastrar</button>
+    </div>
     <p id="login-msg"></p>
   </div>
   <script>
@@ -22,21 +27,33 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let phoneNumber = '';
-
-    async function enviarCodigo() {
-      phoneNumber = document.getElementById('phone').value;
-      const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber });
-      document.getElementById('login-msg').textContent = error ? error.message : 'Código enviado por SMS!';
+    function montarEmailFake(phone) {
+      // Remove caracteres não numéricos e monta um email fake
+      const limpo = phone.replace(/[^\\d+]/g, '');
+      return `${limpo}@celular.mabila`;
     }
 
-    async function verificarCodigo() {
-      const code = document.getElementById('codigo').value;
-      const { error } = await supabase.auth.verifyOtp({ phone: phoneNumber, token: code, type: 'sms' });
+    async function login() {
+      const phone = document.getElementById('phone').value.trim();
+      const senha = document.getElementById('senha').value;
+      const email = montarEmailFake(phone);
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) {
-        document.getElementById('login-msg').textContent = error.message;
+        document.getElementById('login-msg').textContent = 'Erro: ' + error.message;
       } else {
         window.location.href = 'pedidos.html';
+      }
+    }
+
+    async function signup() {
+      const phone = document.getElementById('phone').value.trim();
+      const senha = document.getElementById('senha').value;
+      const email = montarEmailFake(phone);
+      const { error } = await supabase.auth.signUp({ email, password: senha });
+      if (error) {
+        document.getElementById('login-msg').textContent = 'Erro: ' + error.message;
+      } else {
+        document.getElementById('login-msg').textContent = 'Cadastro realizado! Agora faça login.';
       }
     }
 
@@ -44,6 +61,39 @@
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) window.location.href = 'pedidos.html';
     });
+
+    async function adicionarPedido() {
+      // ... código existente ...
+      const user = await supabase.auth.getUser();
+      const telefoneCriador = user.data.user.email.replace('@celular.mabila', ''); // se usa o email fake
+      // ... código existente ...
+      await supabase.from('pedidos').insert({
+        numero,
+        descricao,
+        expira: expira.toISOString(),
+        status: "pendente",
+        notificado: false,
+        dataCriacao: dataCriacao.toISOString(),
+        criador: telefoneCriador // novo campo
+      });
+      // ... código existente ...
+    }
+
+    async function verificarExpiracao(pedido) {
+      if (pedido.status !== "pendente" || pedido.notificado) return;
+      const agora = new Date();
+      const horasRestantes = (pedido.expira - agora) / 3600000;
+      if (horasRestantes <= 6 && horasRestantes > 0) {
+        // Envie só para o criador
+        await notificarPorWhatsappWebhook(pedido.criador, pedido.numero, Math.floor(horasRestantes));
+        await supabase.from('pedidos').update({ notificado: true }).eq('id', pedido.id);
+        console.log(`Notificação WhatsApp enviada para o criador do pedido ${pedido.numero}`);
+      }
+      if (horasRestantes <= 0 && !pedido.notificado) {
+        await supabase.from('pedidos').update({ status: 'concluido', notificado: true }).eq('id', pedido.id);
+        console.log(`Pedido ${pedido.numero} marcado como concluído automaticamente por ter expirado`);
+      }
+    }
   </script>
 </body>
 </html> 

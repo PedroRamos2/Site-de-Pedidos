@@ -1,0 +1,38 @@
+body {
+    background-color: rgb(105, 105, 173);
+    color: #fff;
+    font-family: "Nunito", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+}
+
+.container {
+    text-align: center;
+}
+
+h2 {
+    font-size: 40px;
+    margin-bottom: 40px;
+}
+
+input {
+  margin: 5px 0;
+  padding: 8px;
+  width: 30%;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #4caf50;
+  color: white;
+  border: 1px solid rgb(105, 105, 173);
+  margin-top: 10px;
+  padding: 10px 20px;
+  cursor: pointer;  
+}
+
+button:hover {
+  background-color: #27bd2c;
+}
+

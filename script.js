@@ -70,13 +70,17 @@ async function adicionarPedido() {
   }
 
   const dataCriacao = new Date();
+  // Pega o telefone do usuário logado (do email fake)
+  const user = await supabase.auth.getUser();
+  const telefoneCriador = user.data.user.email.replace('@celular.mabila', '');
   await supabase.from('pedidos').insert({
     numero,
     descricao,
     expira: expira.toISOString(),
     status: "pendente",
     notificado: false,
-    dataCriacao: dataCriacao.toISOString()
+    dataCriacao: dataCriacao.toISOString(),
+    criador: telefoneCriador
   });
   document.getElementById("mensagem").textContent = "Pedido adicionado!";
   document.getElementById("pedido").value = "";
@@ -228,10 +232,9 @@ async function verificarExpiracao(pedido) {
   const agora = new Date();
   const horasRestantes = (pedido.expira - agora) / 3600000;
   if (horasRestantes <= 6 && horasRestantes > 0) {
-    const telefones = await buscarTelefonesUsuarios();
-    await notificarPorWhatsappWebhook(pedido, telefones);
+    await notificarPorWhatsappWebhook(pedido.criador, pedido.numero, Math.floor(horasRestantes));
     await supabase.from('pedidos').update({ notificado: true }).eq('id', pedido.id);
-    console.log(`Notificação WhatsApp enviada para o pedido ${pedido.numero}`);
+    console.log(`Notificação WhatsApp enviada para o criador do pedido ${pedido.numero}`);
   }
   if (horasRestantes <= 0 && !pedido.notificado) {
     await supabase.from('pedidos').update({ status: 'concluido', notificado: true }).eq('id', pedido.id);
@@ -368,15 +371,14 @@ supabase.channel('pedidos-changes')
   .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, carregarPedidos)
   .subscribe();
 
-async function notificarPorWhatsappWebhook(pedido, telefones) {
+async function notificarPorWhatsappWebhook(telefone, pedidoNumero, horasRestantes) {
   await fetch('http://localhost:5678/webhook/numero', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      telefones,
-      numero: pedido.numero,
-      descricao: pedido.descricao,
-      horas: Math.floor((pedido.expira - new Date()) / 3600000)
+      numero: telefone,
+      pedido: pedidoNumero,
+      horas: horasRestantes
     })
   });
 }
