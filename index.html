@@ -8,28 +8,22 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 <body>
-  <div class="container">
-    <h2>Login e Cadastro</h2>
-    <div class="entrar">
-      <input type="tel" id="phone" placeholder="Ex: +55 (11) 99305-2499" required>
-    </div>
-    <div class="senha">
-      <input type="password" id="senha" placeholder="Senha" required>
-    </div>
-    <div class="butao">
-      <button onclick="login()">Entrar</button>
-      <button onclick="signup()">Cadastrar</button>
-    </div>
+  <div class="login-container">
+    <h2>Login/Cadastro por Celular e Senha</h2>
+    <input type="tel" id="phone" placeholder="Digite seu número com DDI, ex: +5511999999999" required>
+    <input type="password" id="senha" placeholder="Senha" required>
+    <button onclick="login()">Entrar</button>
+    <button onclick="signup()">Cadastrar</button>
     <p id="login-msg"></p>
   </div>
   <script>
     const SUPABASE_URL = 'https://xopwqunmuuazzelvuvwt.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     function montarEmailFake(phone) {
-      // Remove caracteres não numéricos e monta um email fake
-      const limpo = phone.replace(/[^\\d+]/g, '');
+      // Remove tudo que não for número
+      const limpo = phone.replace(/\D/g, '');
       return `${limpo}@celular.mabila`;
     }
 
@@ -37,6 +31,10 @@
       const phone = document.getElementById('phone').value.trim();
       const senha = document.getElementById('senha').value;
       const email = montarEmailFake(phone);
+      if (!phone || !senha) {
+        document.getElementById('login-msg').textContent = 'Preencha todos os campos!';
+        return;
+      }
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) {
         document.getElementById('login-msg').textContent = 'Erro: ' + error.message;
@@ -49,6 +47,14 @@
       const phone = document.getElementById('phone').value.trim();
       const senha = document.getElementById('senha').value;
       const email = montarEmailFake(phone);
+      if (!phone || !senha) {
+        document.getElementById('login-msg').textContent = 'Preencha todos os campos!';
+        return;
+      }
+      if (senha.length < 6) {
+        document.getElementById('login-msg').textContent = 'A senha deve ter pelo menos 6 caracteres.';
+        return;
+      }
       const { error } = await supabase.auth.signUp({ email, password: senha });
       if (error) {
         document.getElementById('login-msg').textContent = 'Erro: ' + error.message;
