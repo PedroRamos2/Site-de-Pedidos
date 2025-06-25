@@ -10,8 +10,12 @@
 <body>
   <div class="login-container">
     <h2>Login/Cadastro por Celular e Senha</h2>
-    <input type="tel" id="phone" placeholder="Digite seu número com DDI, ex: +5511999999999" required>
-    <input type="password" id="senha" placeholder="Senha" required>
+    <div class="Entrar">
+      <input type="tel" id="phone" placeholder="Digite seu número com DDI, ex: +5511999999999" required>
+    </div>
+    <div class="senha">
+      <input type="password" id="senha" placeholder="Senha" required>
+    </div>
     <button onclick="login()">Entrar</button>
     <button onclick="signup()">Cadastrar</button>
     <p id="login-msg"></p>
