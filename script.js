@@ -6,32 +6,32 @@ let pedidos = [];
 let emailsUsuarios = [];
 
 // Aguardar a página carregar antes de inicializar o Supabase
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const SUPABASE_URL = 'https://xopwqunmuuazzelvuvwt.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
-  
+
   if (window.supabase) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    
+
     // Checar autenticação
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         window.location.href = 'index.html';
       }
     });
-    
+
     // Carregar pedidos após inicializar
     carregarPedidos();
     configurarDataMinima();
-    
+
     // Verificar pedidos a cada 5 minutos
     setInterval(() => {
       pedidos.forEach(pedido => verificarExpiracao(pedido));
     }, 300000);
-    
+
     // Atualizar a data mínima a cada minuto
     setInterval(configurarDataMinima, 60000);
-    
+
     // Supabase Realtime: escutar mudanças na tabela pedidos
     // Comentado temporariamente para evitar erros de WebSocket
     /*
@@ -39,16 +39,16 @@ document.addEventListener('DOMContentLoaded', function() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, carregarPedidos)
       .subscribe();
     */
-      
+
   } else {
     console.error('Supabase não foi carregado corretamente');
   }
 });
 
-(function(){
-      emailjs.init({
-        publicKey: "yYjrTa1UFxHMyz0K6",
-      });
+(function () {
+  emailjs.init({
+    publicKey: "yYjrTa1UFxHMyz0K6",
+  });
 })();
 
 async function carregarPedidos() {
@@ -123,17 +123,17 @@ async function adicionarPedido() {
   document.getElementById("pedido").value = "";
   document.getElementById("descricao").value = "";
   document.getElementById("expiraEm").value = "";
-  
+
   // Recarregar a lista de pedidos
   await carregarPedidos();
 }
 
 setTimeout(() => {
-    document.getElementById("mensagem").textContent = "";
-  }, 5000);
+  document.getElementById("mensagem").textContent = "";
+}, 5000);
 
 function cancelar() {
-    let can = document.getElementById("cancelar")
+  let can = document.getElementById("cancelar")
 
   document.getElementById("pedido").value = "";
   document.getElementById("descricao").value = "";
@@ -145,7 +145,7 @@ async function excluirPedido(id) {
   console.log('Função excluirPedido chamada com id:', id);
   if (confirm("Tem certeza que deseja excluir este pedido?")) {
     await supabase.from('pedidos').delete().eq('id', id);
-    
+
     // Recarregar a lista após excluir
     await carregarPedidos();
   }
@@ -247,7 +247,7 @@ async function salvarEdicao(id) {
     notificado: false
   }).eq('id', id);
   cancelarEdicao(id);
-  
+
   // Recarregar a lista após salvar
   await carregarPedidos();
 }
@@ -256,7 +256,7 @@ async function salvarEdicao(id) {
 async function marcarComoConcluido(id) {
   console.log('Função marcarComoConcluido chamada com id:', id);
   await supabase.from('pedidos').update({ status: 'concluido' }).eq('id', id);
-  
+
   // Recarregar a lista após marcar como concluído
   await carregarPedidos();
 }
@@ -321,7 +321,7 @@ function mostrarAba(qual) {
 function buscarPedidos(status, buscarExato = false) {
   const campoBusca = document.getElementById(`busca${status}`);
   const termoBusca = campoBusca.value.toLowerCase().trim();
-  
+
   // Se não houver termo de busca, atualizar normalmente
   if (!termoBusca) {
     atualizarListas();
@@ -335,10 +335,10 @@ function buscarPedidos(status, buscarExato = false) {
 
   const pedidosFiltrados = pedidos.filter(pedido => {
     if (pedido.status !== statusBusca) return false;
-    
+
     const numeroPedido = String(pedido.numero).toLowerCase().trim();
     const descricaoPedido = String(pedido.descricao).toLowerCase().trim();
-    
+
     if (buscarExato) {
       return numeroPedido === termoBusca;
     } else {
@@ -407,13 +407,13 @@ function configurarDataMinima() {
   const dia = String(dataMinima.getDate()).padStart(2, '0');
   const hora = String(dataMinima.getHours()).padStart(2, '0');
   const minuto = String(dataMinima.getMinutes()).padStart(2, '0');
-  
+
   const dataFormatada = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
   document.getElementById("expiraEm").min = dataFormatada;
 }
 
 async function notificarPorWhatsappWebhook(telefone, pedidoNumero, horasRestantes) {
-  await fetch('http://localhost:5678/webhook/pedido', {
+  await fetch('https://n8n-render-deploy-n5ro.onrender.com/webhook/number', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
