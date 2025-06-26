@@ -413,7 +413,7 @@ function configurarDataMinima() {
 }
 
 async function notificarPorWhatsappWebhook(telefone, pedidoNumero, horasRestantes) {
-  await fetch('https://n8n-render-deploy-n5ro.onrender.com/webhook/number', {
+  await fetch('http://localhost:5678/webhook/pedido', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
