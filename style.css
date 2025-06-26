@@ -29,8 +29,10 @@ header {
   margin: 10px 0 40px 0;
 }
 
-h1{
-  margin: auto;
+h1 {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #resDa {
