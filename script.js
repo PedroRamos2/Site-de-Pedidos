@@ -287,8 +287,10 @@ async function verificarExpiracao(pedido) {
   const agora = new Date();
   const horasRestantes = (pedido.expira - agora) / 3600000;
   if (horasRestantes <= 6 && horasRestantes > 0) {
-    await notificarPorWhatsappWebhook(pedido.criador, pedido.numero, Math.floor(horasRestantes));
+    // Atualiza o campo notificado ANTES de enviar a notificação
     await supabase.from('pedidos').update({ notificado: true }).eq('id', pedido.id);
+    await new Promise(resolve => setTimeout(resolve, 300)); // 300ms de espera
+    await notificarPorWhatsappWebhook(pedido.criador, pedido.numero, Math.floor(horasRestantes));
     console.log(`Notificação WhatsApp enviada para o criador do pedido ${pedido.numero}`);
   }
   if (horasRestantes <= 0 && !pedido.notificado) {
