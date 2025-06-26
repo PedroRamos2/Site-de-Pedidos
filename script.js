@@ -1,12 +1,47 @@
-// Supabase config
-const SUPABASE_URL = 'https://xopwqunmuuazzelvuvwt.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Supabase config - será inicializado quando a página carregar
+let supabase;
 
-// Checar autenticação
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (!session) {
-    window.location.href = 'index.html';
+// Garantir que pedidos seja preenchido apenas via Supabase
+let pedidos = [];
+let emailsUsuarios = [];
+
+// Aguardar a página carregar antes de inicializar o Supabase
+document.addEventListener('DOMContentLoaded', function() {
+  const SUPABASE_URL = 'https://xopwqunmuuazzelvuvwt.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvcHdxdW5tdXVhenplbHZ1dnd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA3MDg3MjUsImV4cCI6MjA2NjI4NDcyNX0.773OOvJcwQGgw53YfZbx4mRNSmfXE4u2KkibpybJ28E';
+  
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Checar autenticação
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        window.location.href = 'index.html';
+      }
+    });
+    
+    // Carregar pedidos após inicializar
+    carregarPedidos();
+    configurarDataMinima();
+    
+    // Verificar pedidos a cada 5 minutos
+    setInterval(() => {
+      pedidos.forEach(pedido => verificarExpiracao(pedido));
+    }, 300000);
+    
+    // Atualizar a data mínima a cada minuto
+    setInterval(configurarDataMinima, 60000);
+    
+    // Supabase Realtime: escutar mudanças na tabela pedidos
+    // Comentado temporariamente para evitar erros de WebSocket
+    /*
+    supabase.channel('pedidos-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, carregarPedidos)
+      .subscribe();
+    */
+      
+  } else {
+    console.error('Supabase não foi carregado corretamente');
   }
 });
 
@@ -16,18 +51,15 @@ supabase.auth.getSession().then(({ data: { session } }) => {
       });
 })();
 
-// Garantir que pedidos seja preenchido apenas via Supabase
-let pedidos = [];
-let emailsUsuarios = [];
-
 async function carregarPedidos() {
-  const { data, error } = await supabase.from('pedidos').select('*').order('dataCriacao', { ascending: true });
+  const { data, error } = await supabase.from('pedidos').select('*').order('datacriacao', { ascending: true });
   if (!error) {
     pedidos = data.map(p => ({
       ...p,
       expira: new Date(p.expira),
-      dataCriacao: new Date(p.dataCriacao)
+      dataCriacao: new Date(p.datacriacao)
     }));
+    console.log('Pedidos carregados:', pedidos);
     atualizarListas();
   } else {
     console.error('Erro ao carregar pedidos do Supabase:', error);
@@ -73,19 +105,27 @@ async function adicionarPedido() {
   // Pega o telefone do usuário logado (do email fake)
   const user = await supabase.auth.getUser();
   const telefoneCriador = user.data.user.email.replace('@celular.mabila', '');
-  await supabase.from('pedidos').insert({
+  const { error } = await supabase.from('pedidos').insert({
     numero,
     descricao,
     expira: expira.toISOString(),
     status: "pendente",
     notificado: false,
-    dataCriacao: dataCriacao.toISOString(),
+    datacriacao: dataCriacao.toISOString(),
     criador: telefoneCriador
   });
+  if (error) {
+    document.getElementById("mensagem").textContent = "Erro ao adicionar pedido: " + error.message;
+    return;
+  }
+
   document.getElementById("mensagem").textContent = "Pedido adicionado!";
   document.getElementById("pedido").value = "";
   document.getElementById("descricao").value = "";
   document.getElementById("expiraEm").value = "";
+  
+  // Recarregar a lista de pedidos
+  await carregarPedidos();
 }
 
 setTimeout(() => {
@@ -102,12 +142,17 @@ function cancelar() {
 
 // Excluir pedido
 async function excluirPedido(id) {
+  console.log('Função excluirPedido chamada com id:', id);
   if (confirm("Tem certeza que deseja excluir este pedido?")) {
     await supabase.from('pedidos').delete().eq('id', id);
+    
+    // Recarregar a lista após excluir
+    await carregarPedidos();
   }
 }
 
 function atualizarListas() {
+  console.log('Atualizando listas com', pedidos.length, 'pedidos');
   const pendentes = document.getElementById("listaPendentes");
   const concluidos = document.getElementById("listaConcluidos");
   pendentes.innerHTML = "";
@@ -154,17 +199,20 @@ function atualizarListas() {
 }
 
 function abrirEdicao(id) {
+  console.log('Função abrirEdicao chamada com id:', id);
   document.getElementById(`view-${id}`).style.display = "none";
   document.getElementById(`edit-${id}`).style.display = "block";
 }
 
 function cancelarEdicao(id) {
+  console.log('Função cancelarEdicao chamada com id:', id);
   document.getElementById(`edit-${id}`).style.display = "none";
   document.getElementById(`view-${id}`).style.display = "block";
 }
 
 // Salvar edição
 async function salvarEdicao(id) {
+  console.log('Função salvarEdicao chamada com id:', id);
   const pedido = pedidos.find(p => p.id === id);
   if (!pedido) return;
 
@@ -199,11 +247,18 @@ async function salvarEdicao(id) {
     notificado: false
   }).eq('id', id);
   cancelarEdicao(id);
+  
+  // Recarregar a lista após salvar
+  await carregarPedidos();
 }
 
 // Marcar como concluído
 async function marcarComoConcluido(id) {
+  console.log('Função marcarComoConcluido chamada com id:', id);
   await supabase.from('pedidos').update({ status: 'concluido' }).eq('id', id);
+  
+  // Recarregar a lista após marcar como concluído
+  await carregarPedidos();
 }
 
 // Buscar todos os emails cadastrados no Supabase Auth
@@ -355,24 +410,8 @@ function configurarDataMinima() {
   document.getElementById("expiraEm").min = dataFormatada;
 }
 
-// Carregar e atualizar ao iniciar
-carregarPedidos();
-atualizarListas();
-configurarDataMinima();
-
-// Verificar pedidos a cada 5 minutos
-setInterval(verificarExpiracao, 300000);
-
-// Atualizar a data mínima a cada minuto
-setInterval(configurarDataMinima, 60000);
-
-// Supabase Realtime: escutar mudanças na tabela pedidos
-supabase.channel('pedidos-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'pedidos' }, carregarPedidos)
-  .subscribe();
-
 async function notificarPorWhatsappWebhook(telefone, pedidoNumero, horasRestantes) {
-  await fetch('http://localhost:5678/webhook/numero', {
+  await fetch('http://localhost:5678/webhook/pedido', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -382,4 +421,17 @@ async function notificarPorWhatsappWebhook(telefone, pedidoNumero, horasRestante
     })
   });
 }
+
+// Tornar funções globais para os botões onclick (deve ficar no final)
+console.log('Tornando funções globais...');
+window.abrirEdicao = abrirEdicao;
+window.marcarComoConcluido = marcarComoConcluido;
+window.excluirPedido = excluirPedido;
+window.salvarEdicao = salvarEdicao;
+window.cancelarEdicao = cancelarEdicao;
+window.adicionarPedido = adicionarPedido;
+window.cancelar = cancelar;
+window.mostrarAba = mostrarAba;
+window.handleBuscaKeyPress = handleBuscaKeyPress;
+console.log('Funções globais definidas:', Object.keys(window).filter(key => ['abrirEdicao', 'marcarComoConcluido', 'excluirPedido', 'salvarEdicao', 'cancelarEdicao', 'adicionarPedido', 'cancelar', 'mostrarAba', 'handleBuscaKeyPress'].includes(key)));
 
